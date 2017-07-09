@@ -21,12 +21,6 @@
  ***********************************************************************
  */
 
-// Revisions:
-//  19 Sep 2015: (Contributed by Aaron Sami Abassi)
-//      Added the c++ extern "C" wrapper
-
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif

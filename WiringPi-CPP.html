@@ -1,0 +1,800 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=windows-1252"/>
+	<title></title>
+	<meta name="generator" content="LibreOffice 5.2.7.2 (Windows)"/>
+	<meta name="created" content="2017-07-09T14:39:31.085000000"/>
+	<meta name="changed" content="2017-07-09T14:40:11.319000000"/>
+	<style type="text/css">
+		@page { margin: 2cm }
+		p { margin-bottom: 0.25cm; line-height: 120% }
+		h1 { margin-bottom: 0.21cm }
+		h1.western { font-family: "Liberation Sans", sans-serif; font-size: 18pt }
+		h1.cjk { font-family: "Microsoft YaHei"; font-size: 18pt }
+		h1.ctl { font-family: "Mangal"; font-size: 18pt }
+	</style>
+</head>
+<body lang="en-CA" dir="ltr">
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p align="center" style="margin-top: 0.42cm; margin-bottom: 0.21cm; line-height: 100%; page-break-after: avoid">
+<font face="Liberation Sans, sans-serif"><font size="6" style="font-size: 28pt"><b>WiringPi
+C To C++ Library Port Summary</b></font></font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p align="center" style="margin-top: 0.11cm; margin-bottom: 0.21cm; line-height: 100%; page-break-after: avoid">
+<font face="Liberation Sans, sans-serif"><font size="5" style="font-size: 18pt">Authorship</font></font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p style="margin-bottom: 0cm; line-height: 100%">	Gordon Henderson is
+the author of the original WiringPi library set.  Aaron Abassi made
+these further listed alterations to the original work in order to
+produce the C++ (2014) version as well as this project summary
+document.  The C++ version is derived directly from the original work
+of Gordon Henderson and I claim no copyright on the derived work
+though it is a derived work, leaving the derived work strictly under
+the same copyright license terms as Gordon Henderson&rsquo;s original
+work.</p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p align="center" style="margin-top: 0.11cm; margin-bottom: 0.21cm; line-height: 100%; page-break-after: avoid">
+<font face="Liberation Sans, sans-serif"><font size="5" style="font-size: 18pt">Goal</font></font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p style="margin-bottom: 0cm; line-height: 100%">	To port the
+WiringPi library and tools to the C++ (2014) programming language in
+order to simplify the addition of future trivial, I2C &amp; SPI
+compliant extensions and fast look-up tables.  To identify and
+implement straightforward opportunities to make use of templates to
+replace multiple functions and/or variables.  To maintain linker
+compatibility with the original C programming language library
+version in order to continue to serve users of other programming
+languages.</p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p align="center" style="margin-top: 0.11cm; margin-bottom: 0.21cm; line-height: 100%; page-break-after: avoid">
+<font face="Liberation Sans, sans-serif"><font size="5" style="font-size: 18pt">Conclusions</font></font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p style="margin-bottom: 0cm; line-height: 100%">	The result is a
+library which is linker compatible, and therefore the original
+examples provided with the WiringPi library which remained in the C
+programming language link against the new C++ library versions
+without modification.  A total of 17 function definitions are
+replaced with 4 function templates.  A total of 13 (16 conditionally)
+variable definitions are replaced with 5 variable templates.</p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p align="center" style="margin-top: 0.11cm; margin-bottom: 0.21cm; line-height: 100%; page-break-after: avoid">
+<font face="Liberation Sans, sans-serif"><font size="5" style="font-size: 18pt">Observations</font></font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p style="margin-bottom: 0cm; line-height: 100%">	What follows is a
+summary of all the changes which were made to the source
+distribution.  The C++ WiringPi source files used in this
+demonstration are based on WiringPi source code dated June 8<sup>th</sup>
+2017 using the URL &ldquo;git://git.drogon.net/wiringPi&rdquo;.  All
+source files with the extension &ldquo;.c&rdquo; were renamed to the
+extension &ldquo;.cpp&rdquo; <u>except those source files in the
+&ldquo;examples&rdquo; directory</u>.  Likewise all &ldquo;Makefile&rdquo;
+were modified <u>except the one in the &ldquo;examples&rdquo;
+directory</u>, which will continue to make use of &ldquo;gcc&rdquo;
+(the GNU <span style="text-decoration: none">C programming language</span>
+compiler).  In all other instances the &ldquo;Makefile&rdquo; were
+converted to C++ format and use &ldquo;g++&rdquo; (the GNU C++
+programming language compiler).</p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p style="margin-bottom: 0cm; line-height: 100%; page-break-before: always">
+<br/>
+
+</p>
+<p align="center" style="margin-top: 0.11cm; margin-bottom: 0.21cm; line-height: 100%; page-break-after: avoid">
+<font face="Liberation Sans, sans-serif"><font size="5" style="font-size: 18pt">WiringPi
+Library (wiringPi directory)</font></font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<hr/>
+
+<h1 class="western">rht03.c <font face="Liberation Serif, serif">&rarr;</font>
+rht03.cpp</h1>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">myAnalogRead
+<font face="Liberation Serif, serif">&rarr;</font> Renamed local
+identifier &ldquo;try&rdquo; to &ldquo;attempt&rdquo;</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<hr/>
+
+<h1 class="western">ds18b20.c <font face="Liberation Serif, serif">&rarr;</font>
+ds18b20.cpp</h1>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">ds18b20Setup
+<font face="Liberation Serif, serif">&rarr;</font> Type Cast Return
+Of &quot;malloc&quot;</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<hr/>
+
+<h1 class="western">softPwm.c <font face="Liberation Serif, serif">&rarr;</font>
+softPwm.cpp</h1>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">softPwmCreate
+<font face="Liberation Serif, serif">&rarr;</font> Type Cast Return
+Of &quot;malloc&quot;</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p style="margin-bottom: 0cm; line-height: 100%; page-break-before: always">
+<br/>
+
+</p>
+<p align="center" style="margin-top: 0.11cm; margin-bottom: 0.21cm; line-height: 100%; page-break-after: avoid">
+<font face="Liberation Sans, sans-serif"><font size="5" style="font-size: 18pt">WiringPi
+Library (wiringPi directory)</font></font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<hr/>
+
+<h1 class="western"><font face="Liberation Sans, sans-serif">wiringPi.c
+&rarr; wiringPi.cpp</font></h1>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">g</font><font face="Liberation Serif, serif">pio_t</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Introduced </font><font face="Liberation Serif, serif">Type
+Alias</font></p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">pinToGpioRx</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Introduced </font><font face="Liberation Serif, serif">Variable
+Template</font></p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">pinToGpioR1</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Refactored As </font><font face="Liberation Serif, serif">Array
+Reference</font></p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">pinToGpioR2</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Refactored As </font><font face="Liberation Serif, serif">Array
+Reference</font></p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">physToGpioRx</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Introduced </font><font face="Liberation Serif, serif">Variable
+Template</font></p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">physToGpioR1</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Refactored As </font><font face="Liberation Serif, serif">Array
+Reference</font></p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">physToGpioR2</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Refactored As </font><font face="Liberation Serif, serif">Array
+Reference</font></p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">gpioToLowHi</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Introduced </font><font face="Liberation Serif, serif">Variable
+Template</font></p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">gpioToGPSET</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Refactored As </font><font face="Liberation Serif, serif">Constant
+Pointer</font></p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">gpioToGPCLR</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Refactored As </font><font face="Liberation Serif, serif">Constant
+Pointer</font></p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">gpioToGPLEV</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Refactored As </font><font face="Liberation Serif, serif">Constant
+Pointer</font></p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">(</font><font face="Liberation Serif, serif">conditional</font><font face="Liberation Serif, serif">)
+</font><font face="Liberation Serif, serif">gpioToEDS</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Refactored As </font><font face="Liberation Serif, serif">Constant
+Pointer</font></p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">(</font><font face="Liberation Serif, serif">conditional</font><font face="Liberation Serif, serif">)
+</font><font face="Liberation Serif, serif">gpioToREN</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Refactored As </font><font face="Liberation Serif, serif">Constant
+Pointer</font></p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">(</font><font face="Liberation Serif, serif">conditional</font><font face="Liberation Serif, serif">)
+</font><font face="Liberation Serif, serif">gpioToFEN</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Refactored As </font><font face="Liberation Serif, serif">Constant
+Pointer</font></p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">gpioToPUDCLK</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Refactored As </font><font face="Liberation Serif, serif">Constant
+Pointer</font></p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">gpioToPwm</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Introduced </font><font face="Liberation Serif, serif">Variable
+Template</font></p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">gpioToPwmALT</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Refactored As </font><font face="Liberation Serif, serif">Constant
+Pointer</font></p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">gpioToPwmPort</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Refactored As </font><font face="Liberation Serif, serif">Constant
+Pointer</font></p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">gpioToClk</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Introduced </font><font face="Liberation Serif, serif">Variable
+Template</font></p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">gpioToGpClkALT0</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Refactored As </font><font face="Liberation Serif, serif">Constant
+Pointer</font></p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">gpioToClkCon</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Refactored As </font><font face="Liberation Serif, serif">Constant
+Pointer</font></p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">gpioToClkDiv</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Refactored As </font><font face="Liberation Serif, serif">Constant
+Pointer</font></p>
+<p align="left" style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p style="margin-bottom: 0cm; line-height: 100%; page-break-before: always">
+<br/>
+
+</p>
+<p align="center" style="margin-top: 0.11cm; margin-bottom: 0.21cm; line-height: 100%; page-break-after: avoid">
+<font face="Liberation Sans, sans-serif"><font size="5" style="font-size: 18pt">WiringPi
+Library (wiringPi directory)</font></font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<hr/>
+
+<h1 class="western">wpiExtensions.c <font face="Liberation Serif, serif">&rarr;</font>
+wpiExtensions.cpp</h1>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">do_</font><font face="Liberation Serif, serif">extension_t</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Introduced </font><font face="Liberation Serif, serif">Type
+Alias</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">trivial</font><font face="Liberation Serif, serif">_setup</font><font face="Liberation Serif, serif">_t</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Introduced </font><font face="Liberation Serif, serif">Type
+Alias</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">i2c_</font><font face="Liberation Serif, serif">setup_</font><font face="Liberation Serif, serif">t</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Introduced </font><font face="Liberation Serif, serif">Type
+Alias</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">spi_</font><font face="Liberation Serif, serif">setup_</font><font face="Liberation Serif, serif">t</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Introduced </font><font face="Liberation Serif, serif">Type
+Alias</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">spi_port_</font><font face="Liberation Serif, serif">setup_</font><font face="Liberation Serif, serif">t</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Introduced </font><font face="Liberation Serif, serif">Type
+Alias</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">extensionFunctionStruct</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Simplified </font><font face="Liberation Serif, serif">Member
+&ldquo;function&rdquo; </font><font face="Liberation Serif, serif">Using
+Type Alias</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">extractStr</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Type Cast Return Of
+&quot;calloc&quot;</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">doExtensionTrivial</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Introduced </font><font face="Liberation Serif, serif">Function
+Template</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">doExtensionI2C</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Introduced </font><font face="Liberation Serif, serif">Function
+Template</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">doExtensionSPI</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Introduced </font><font face="Liberation Serif, serif">Function
+Template</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">doExtensionSPIPort</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Introduced </font><font face="Liberation Serif, serif">Function
+Template</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">doExtensionMcp23008</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Replaced By </font><font face="Liberation Serif, serif">Function
+Template Instance</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">doExtensionMcp23016</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Replaced By </font><font face="Liberation Serif, serif">Function
+Template Instance</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">doExtensionMcp23017</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Replaced By </font><font face="Liberation Serif, serif">Function
+Template Instance</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">doExtensionMcp23s08</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Replaced By </font><font face="Liberation Serif, serif">Function
+Template Instance</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">doExtensionMcp23s17</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Replaced By </font><font face="Liberation Serif, serif">Function
+Template Instance</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">doExtensionPcf8574</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Replaced By </font><font face="Liberation Serif, serif">Function
+Template Instance</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">doExtensionAds1115</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Replaced By </font><font face="Liberation Serif, serif">Function
+Template Instance</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">doExtensionPcf8591</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Replaced By </font><font face="Liberation Serif, serif">Function
+Template Instance</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">doExtensionPseudoPins</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Replaced By </font><font face="Liberation Serif, serif">Function
+Template Instance</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">doExtensionBmp180</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Replaced By </font><font face="Liberation Serif, serif">Function
+Template Instance</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">doExtensionHtu21d</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Replaced By </font><font face="Liberation Serif, serif">Function
+Template Instance</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">doExtensionMax31855</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Replaced By </font><font face="Liberation Serif, serif">Function
+Template Instance</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">doExtensionMcp3002</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Replaced By </font><font face="Liberation Serif, serif">Function
+Template Instance</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">doExtensionMcp3004</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Replaced By </font><font face="Liberation Serif, serif">Function
+Template Instance</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">doExtensionMax5322</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Replaced By </font><font face="Liberation Serif, serif">Function
+Template Instance</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">doExtensionMcp4802</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Replaced By </font><font face="Liberation Serif, serif">Function
+Template Instance</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">doExtensionSn3218</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Replaced By </font><font face="Liberation Serif, serif">Function
+Template Instance</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p style="margin-bottom: 0cm; line-height: 100%; page-break-before: always">
+<br/>
+
+</p>
+<p align="center" style="margin-top: 0.11cm; margin-bottom: 0.21cm; line-height: 100%; page-break-after: avoid">
+<font face="Liberation Sans, sans-serif"><font size="5" style="font-size: 18pt">WiringPi
+Library (wiringPi directory)</font></font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<hr/>
+
+<h1 class="western">Makefile</h1>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">CC
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">CXX</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">gcc</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">g++</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">CFLAGS</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">CXXFLAGS</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">CXXFLAGS</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Appended</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">-std=c++14</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">wiringPi.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">wiringPi.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">wiringSerial.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">wiringSerial.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">wiringShift.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">wiringShift.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">piHiPri.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">piHiPri.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">piThread.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">piThread.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">wiringPiSPI.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">wiringPiSPI.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">wiringPiI2C.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">wiringPiI2C.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">softPwm.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">softPwm.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">s</font><font face="Liberation Serif, serif">oftTone.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">softTone.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">mcp23008.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">mcp23008.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">mcp23016.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">mcp23016.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">mcp23017.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">mcp23017.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">mcp23s08.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">mcp23s08.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">mcp23s17.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">mcp23s17.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">sr595.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">sr595.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">pcf8574.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">pcf8574.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">pcf8591.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">pcf8591.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">mcp3002.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">mcp3002.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">mcp3004.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">mcp3004.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">mcp4802.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">mcp4802.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">mcp3422.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">mcp3422.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">max31855.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">max31855.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">m</font><font face="Liberation Serif, serif">ax5322.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">max5322.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">ads1115.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">ads1115.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">sn3218.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">sn3218.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">bmp180.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">bmp180.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">htu21d.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">htu21d.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">ds18b20.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">ds18b20.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">rht03.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">rht03.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">drcSerial.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">drcSerial.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">drcNet.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">drcNet.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">pseudoPins.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">pseudoPins.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">wpiExtensions.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">wpiExtensions.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">$(SRC:.c=.o)</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">$(</font><font face="Liberation Serif, serif">SRC:</font><font face="Liberation Serif, serif">.</font><font face="Liberation Serif, serif">cpp=.o</font><font face="Liberation Serif, serif">)</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p style="margin-bottom: 0cm; line-height: 100%; page-break-before: always">
+<br/>
+
+</p>
+<p align="center" style="margin-top: 0.11cm; margin-bottom: 0.21cm; line-height: 100%; page-break-after: avoid">
+<font face="Liberation Sans, sans-serif"><font size="5" style="font-size: 18pt">Device
+Library (devLib directory)</font></font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<hr/>
+
+<h1 class="western">lcd128x64.h</h1>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">Introduced</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Conditional extern &ldquo;C&rdquo;
+block </font><font face="Liberation Serif, serif">(missing)</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<hr/>
+
+<h1 class="western">Makefile</h1>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">CC
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">CXX</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">gcc</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">g++</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">CFLAGS</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">CXXFLAGS</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">CXXFLAGS</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Appended</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">-std=c++14</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">ds1302.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">ds1302.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">maxdetect.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">maxdetect.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">piNes.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">piNes.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">gertboard.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">gertboard.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">piFace.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">piFace.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">lcd128x64.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">lcd128x64.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">lcd.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">lcd.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">scrollPhat.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">scrollPhat.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">piGlow.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">piGlow.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">$(SRC:.c=.o)</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">$(</font><font face="Liberation Serif, serif">SRC:</font><font face="Liberation Serif, serif">.</font><font face="Liberation Serif, serif">cpp=.o</font><font face="Liberation Serif, serif">)</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p style="margin-bottom: 0cm; line-height: 100%; page-break-before: always">
+<br/>
+
+</p>
+<p align="center" style="margin-top: 0.11cm; margin-bottom: 0.21cm; line-height: 100%; page-break-after: avoid">
+<font face="Liberation Sans, sans-serif"><font size="5" style="font-size: 18pt">GPIO
+Application (gpio directory)</font></font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<hr/>
+
+<h1 class="western"><font face="Liberation Sans, sans-serif">gpio.c &rarr;
+gpio.cpp</font></h1>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">usage</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Declared Constant</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">findExecutable</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Type Cast Return Of
+&quot;malloc&quot;</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">changeOwner</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Parameters &ldquo;cmd&rdquo;
+and &ldquo;file&rdquo; Declared Constant</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">moduleLoaded</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Parameter &ldquo;modName&rdquo;
+Declared Constant</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">doLoad</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Locals &ldquo;module1&rdquo;,
+&ldquo;module2&rdquo;, &ldquo;file1&rdquo; and &ldquo;file2&rdquo;
+Declared Constant</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">doI2Cdetect</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Type Cast Return Of
+&quot;malloc&quot;</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<hr/>
+
+<h1 class="western"><font face="Liberation Sans, sans-serif">readall.c
+&rarr; readall.cpp</font></h1>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">alts</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Declared Constant</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">physNames</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Declare</font><font face="Liberation Serif, serif">d</font><font face="Liberation Serif, serif">
+Constant</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">abReadAll</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Local &ldquo;type&rdquo;
+Declared Constant</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<hr/>
+
+<h1 class="western">Makefile</h1>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">CC</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">CXX</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">gcc</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">g++</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">CFLAGS</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">CXXFLAGS</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">CXXFLAGS</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Appended</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">-std=c++14</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">gpio.</font><font face="Liberation Serif, serif">c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">gpio.</font><font face="Liberation Serif, serif">cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">readall.</font><font face="Liberation Serif, serif">c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">readall.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">pins.</font><font face="Liberation Serif, serif">c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">pins.</font><font face="Liberation Serif, serif">cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">$(SRC:.c=.o)</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">$(</font><font face="Liberation Serif, serif">SRC:</font><font face="Liberation Serif, serif">.</font><font face="Liberation Serif, serif">cpp=.o</font><font face="Liberation Serif, serif">)</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p style="margin-bottom: 0cm; line-height: 100%; page-break-before: always">
+<br/>
+
+</p>
+<p align="center" style="margin-top: 0.11cm; margin-bottom: 0.21cm; line-height: 100%; page-break-after: avoid">
+<font face="Liberation Sans, sans-serif"><font size="5" style="font-size: 18pt">WiringPi
+Daemon (wiringPiD directory)</font></font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<hr/>
+
+<h1 class="western">drcNetCmd.h</h1>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">drcNetComStruct</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Removed Orphaned &ldquo;comDat&rdquo;
+Identifier</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<hr/>
+
+<h1 class="western"><font face="Liberation Sans, sans-serif">network.c
+&rarr; network.cpp</font></h1>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">getResponse</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Type Cast Return Of
+&quot;malloc&quot;</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<hr/>
+
+<h1 class="western"><font face="Liberation Sans, sans-serif">wiringpid.c
+&rarr; wiringpid.cpp</font></h1>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">main</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Type Cast Return Of
+&quot;malloc&quot;</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<hr/>
+
+<h1 class="western">Makefile</h1>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">CC</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">CXX</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">gcc</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">g++</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">CFLAGS</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">CXXFLAGS</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">CXXFLAGS</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">Appended</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">-std=c++14</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">wiringpid</font><font face="Liberation Serif, serif">.</font><font face="Liberation Serif, serif">c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">wiringpid.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">network</font><font face="Liberation Serif, serif">.</font><font face="Liberation Serif, serif">c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">network</font><font face="Liberation Serif, serif">.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">runRemote</font><font face="Liberation Serif, serif">.</font><font face="Liberation Serif, serif">c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">runRemote</font><font face="Liberation Serif, serif">.</font><font face="Liberation Serif, serif">cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">daemonise.c</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">daemonise.cpp</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><font face="Liberation Serif, serif">$(SRC:.c=.o)</font><font face="Liberation Serif, serif">&rarr;</font><font face="Liberation Serif, serif">
+</font><font face="Liberation Serif, serif">$(</font><font face="Liberation Serif, serif">SRC:</font><font face="Liberation Serif, serif">.</font><font face="Liberation Serif, serif">cpp=.o</font><font face="Liberation Serif, serif">)</font></p>
+<p style="margin-bottom: 0cm; line-height: 100%"><br/>
+
+</p>
+</body>
+</html>

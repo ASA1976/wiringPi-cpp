@@ -1,7 +1,7 @@
 /*
  * readall.c:
  *	The readall functions - getting a bit big, so split them out.
- *	Copyright (c) 2012-2015 Gordon Henderson
+ *	Copyright (c) 2012-2017 Gordon Henderson
  ***********************************************************************
  * This file is part of wiringPi:
  *	https://projects.drogon.net/raspberry-pi/wiringpi/
@@ -20,11 +20,6 @@
  *    along with wiringPi.  If not, see <http://www.gnu.org/licenses/>.
  ***********************************************************************
  */
-
-// Revisions:
-//  19 Sep 2015: (Contributed by Aaron Sami Abassi)
-//      Ported to c++
-//      Added const qualifiers required to compile without warnings
 
 
 #include <stdio.h>
@@ -80,12 +75,12 @@ static void doReadallExternal (void)
  *********************************************************************************
  */
 
-static const char *const alts [] =
+static const char *alts [] =
 {
   "IN", "OUT", "ALT5", "ALT4", "ALT0", "ALT1", "ALT2", "ALT3"
 } ;
 
-static int physToWpi [64] = 
+static int physToWpi [64] =
 {
   -1,           // 0
   -1, -1,       // 1, 2
@@ -118,12 +113,12 @@ static int physToWpi [64] =
   -1, -1, -1, -1, -1, -1, -1, -1, -1
 } ;
 
-static const char *const physNames [64] = 
+static const char *physNames [64] =
 {
   NULL,
 
   "   3.3v", "5v     ",
-  "  SDA.1", "5V     ",
+  "  SDA.1", "5v     ",
   "  SCL.1", "0v     ",
   "GPIO. 7", "TxD    ",
   "     0v", "RxD    ",
@@ -220,7 +215,14 @@ static void readallPhys (int physPin)
 }
 
 
-void cmReadall (void)
+/*
+ * allReadall:
+ *	Read all the pins regardless of the model. Primarily of use for
+ *	the compute module, but handy for other fiddling...
+ *********************************************************************************
+ */
+
+static void allReadall (void)
 {
   int pin ;
 
@@ -228,19 +230,20 @@ void cmReadall (void)
   printf ("| Pin | Mode | Value |      | Pin | Mode | Value |\n") ;
   printf ("+-----+------+-------+      +-----+------+-------+\n") ;
 
-  for (pin = 0 ; pin < 28 ; ++pin)
+  for (pin = 0 ; pin < 27 ; ++pin)
   {
     printf ("| %3d ", pin) ;
     printf ("| %-4s ", alts [getAlt (pin)]) ;
     printf ("| %s  ", digitalRead (pin) == HIGH ? "High" : "Low ") ;
     printf ("|      ") ;
-    printf ("| %3d ", pin + 28) ;
-    printf ("| %-4s ", alts [getAlt (pin + 28)]) ;
-    printf ("| %s  ", digitalRead (pin + 28) == HIGH ? "High" : "Low ") ;
+    printf ("| %3d ", pin + 27) ;
+    printf ("| %-4s ", alts [getAlt (pin + 27)]) ;
+    printf ("| %s  ", digitalRead (pin + 27) == HIGH ? "High" : "Low ") ;
     printf ("|\n") ;
   }
 
   printf ("+-----+------+-------+      +-----+------+-------+\n") ;
+
 }
 
 
@@ -294,12 +297,20 @@ static void plus2header (int model)
     printf (" +-----+-----+---------+------+---+--A Plus--+---+------+---------+-----+-----+\n") ;
   else if (model == PI_MODEL_BP)
     printf (" +-----+-----+---------+------+---+--B Plus--+---+------+---------+-----+-----+\n") ;
-  else
+  else if (model == PI_MODEL_ZERO)
+    printf (" +-----+-----+---------+------+---+-Pi Zero--+---+------+---------+-----+-----+\n") ;
+  else if (model == PI_MODEL_ZERO_W)
+    printf (" +-----+-----+---------+------+---+-Pi ZeroW-+---+------+---------+-----+-----+\n") ;
+  else if (model == PI_MODEL_2)
     printf (" +-----+-----+---------+------+---+---Pi 2---+---+------+---------+-----+-----+\n") ;
+  else if (model == PI_MODEL_3)
+    printf (" +-----+-----+---------+------+---+---Pi 3---+---+------+---------+-----+-----+\n") ;
+  else
+    printf (" +-----+-----+---------+------+---+---Pi ?---+---+------+---------+-----+-----+\n") ;
 }
 
 
-void piPlusReadall (int model)
+static void piPlusReadall (int model)
 {
   int pin ;
 
@@ -316,6 +327,13 @@ void piPlusReadall (int model)
 }
 
 
+/*
+ * doReadall:
+ *	Generic read all pins called from main program. Works out the Pi type
+ *	and calls the appropriate function.
+ *********************************************************************************
+ */
+
 void doReadall (void)
 {
   int model, rev, mem, maker, overVolted ;
@@ -330,10 +348,21 @@ void doReadall (void)
 
   /**/ if ((model == PI_MODEL_A) || (model == PI_MODEL_B))
     abReadall (model, rev) ;
-  else if ((model == PI_MODEL_BP) || (model == PI_MODEL_AP) || (model == PI_MODEL_2))
+  else if ((model == PI_MODEL_BP) || (model == PI_MODEL_AP) || (model == PI_MODEL_2) || (model == PI_MODEL_3) || (model == PI_MODEL_ZERO) || (model == PI_MODEL_ZERO_W))
     piPlusReadall (model) ;
-  else if (model == PI_MODEL_CM)
-    cmReadall () ;
+  else if ((model == PI_MODEL_CM) || (model == PI_MODEL_CM3))
+    allReadall () ;
   else
     printf ("Oops - unable to determine board type... model: %d\n", model) ;
+}
+
+/*
+ * doAllReadall:
+ *	Force reading of all pins regardless of Pi model
+ *********************************************************************************
+ */
+
+void doAllReadall (void)
+{
+  allReadall () ;
 }

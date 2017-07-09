@@ -24,12 +24,6 @@
  ***********************************************************************
  */
 
-// Revisions:
-//  18 Sep 2015: (Contributed by Aaron Sami Abassi)
-//      Ported to c++ to leverage templates internally
-//      Refactored certain doExtension functions to function templates
-//      Refactored other functions to use the function templates
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,10 +52,38 @@
 #include "mcp3422.h"
 #include "max31855.h"
 #include "max5322.h"
+#include "ads1115.h"
 #include "sn3218.h"
 #include "drcSerial.h"
+#include "drcNet.h"
+#include "../wiringPiD/drcNetCmd.h"
+#include "pseudoPins.h"
+#include "bmp180.h"
+#include "htu21d.h"
+#include "ds18b20.h"
+#include "rht03.h"
 
 #include "wpiExtensions.h"
+
+// Do extension function abstraction
+
+using do_extension_t = int (char*, int, char*) ;
+
+// Trivial setup function abstraction
+
+using trivial_setup_t = int (int) ;
+
+// I2C setup function abstraction
+
+using i2c_setup_t = int (int, int) ;
+
+// SPI setup function abstraction
+
+using spi_setup_t = int (int, int) ;
+
+// SPI with port setup function abstraction
+
+using spi_port_setup_t = int (int, int, int) ;
 
 extern int wiringPiDebug ;
 
@@ -69,17 +91,12 @@ static int verbose ;
 static char errorMessage [1024] ;
 
 
-#ifndef TRUE
-#  define	TRUE	(1==1)
-#  define	FALSE	(1==2)
-#endif
-
 // Local structure to hold details
 
 struct extensionFunctionStruct
 {
   const char *name ;
-  int	(*function)(char *progName, int pinBase, char *params) ;
+  do_extension_t *function ;
 } ;
 
 
@@ -124,7 +141,13 @@ static char *extractInt (char *progName, char *p, int *num)
   }
 
   *num = strtol (p, NULL, 0) ;
-  while (isdigit (*p))
+
+// Increment p, but we need to check for hex 0x
+
+  if ((*p == '0') && (*(p + 1) == 'x'))
+    p +=2 ;
+
+  while (isxdigit (*p))
     ++p ;
 
   return p ;
@@ -134,12 +157,16 @@ static char *extractInt (char *progName, char *p, int *num)
 /*
  * extractStr:
  *	Check & return a string at the given location (prefixed by a :)
+ *	Note: The string can be enclosed in []'s to escape colons. This is
+ *	so we can handle IPv6 addresses which contain colons and the []'s is
+ *	a common way to prepresent them.
  *********************************************************************************
  */
 
 static char *extractStr (char *progName, char *p, char **str)
 {
   char *q, *r ;
+  int quoted = FALSE ;
 
   if (*p != ':')
   {
@@ -149,37 +176,76 @@ static char *extractStr (char *progName, char *p, char **str)
 
   ++p ;
 
-  if (!isprint (*p))
+  if (*p == '[')
+  {
+    quoted = TRUE ;
+    ++p ;
+  }
+
+  if (!isprint (*p))	// Is this needed?
   {
     verbError ("%s: character expected", progName) ;
     return NULL ;
   }
 
   q = p ;
-  while ((*q != 0) && (*q != ':'))
-    ++q ;
+  if (quoted)
+  {
+    while ((*q != 0) && (*q != ']'))
+      ++q ;
+  }
+  else
+  {
+    while ((*q != 0) && (*q != ':'))
+      ++q ;
+  }
 
-  // Added typecast (char*) for c++ port
   *str = r = (char*) calloc (q - p + 2, 1) ;	// Zeros it
 
   while (p != q)
     *r++ = *p++ ;
+
+  if (quoted)				// Skip over the ] to the :
+    ++p ;
 
   return p ;
 }
 
 
 /*
- * doExtensionI2C<
- *  extensionSetup; I2C extension setup function reference
- *  i2cMin; Minimum I2C address
- *  i2cMax; Maximum I2C address
- * >:
- *	Extracts an integer parameter, verifies i2c address then calls extensionSetup
+ * doExtensionTrivial<
+ *   trivialSetup; Trivial extension setup function reference
+ * >;
+ *	Calls trivialSetup
  *********************************************************************************
  */
 
-template <int (&extensionSetup)(const int, const int), int i2cMin, int i2cMax>
+template <
+  trivial_setup_t &trivialSetup
+>
+static int doExtensionTrivial (UNU char *progName, int pinBase, UNU char *params)
+{
+  trivialSetup (pinBase) ;
+
+  return TRUE ;
+}
+
+
+/*
+ * doExtensionI2C<
+ *   i2cSetup; I2C extension setup function reference
+ *   i2cMin; Minimum I2C address
+ *   i2cMax; Maximum I2C address
+ * >:
+ *	Extracts an integer parameter, verifies i2c address then calls i2cSetup
+ *********************************************************************************
+ */
+
+template <
+  i2c_setup_t &i2cSetup,
+  const int i2cMin,
+  const int i2cMax
+>
 static int doExtensionI2C (char *progName, int pinBase, char *params)
 {
   int i2c ;
@@ -193,56 +259,66 @@ static int doExtensionI2C (char *progName, int pinBase, char *params)
     return FALSE ;
   }
 
-  extensionSetup (pinBase, i2c) ;
+  i2cSetup (pinBase, i2c) ;
 
   return TRUE ;
 }
 
 
 /*
- * doExtensionMcp23008:
- *	MCP23008 - 8-bit I2C GPIO expansion chip
- *	mcp23002:base:i2cAddr
+ * doExtensionSPI<
+ *   spiSetup; SPI extension setup function reference
+ *   spiMin; Minimum SPI address
+ *   spiMax; Maximum SPI address
+ * >:
+ *	Extracts an integer parameter, verifies spi channel then calls spiSetup
  *********************************************************************************
  */
 
-static int (&doExtensionMcp23008)(char*, int, char*) = doExtensionI2C< mcp23008Setup, 0x01, 0x77 > ;
+template <
+  spi_setup_t &spiSetup,
+  const int spiMin,
+  const int spiMax
+>
+static int doExtensionSPI (char *progName, int pinBase, char *params)
+{
+  int spi ;
 
+  if ((params = extractInt (progName, params, &spi)) == NULL)
+    return FALSE ;
 
-/*
- * doExtensionMcp23016:
- *	MCP230016- 16-bit I2C GPIO expansion chip
- *	mcp23016:base:i2cAddr
- *********************************************************************************
- */
+  if ((spi < spiMin) || (spi > spiMax))
+  {
+    verbError ("%s: SPI channel (%d) out of range", progName, spi) ;
+    return FALSE ;
+  }
 
-static int (&doExtensionMcp23016)(char*, int, char*) = doExtensionI2C< mcp23016Setup, 0x03, 0x77 > ;
+  spiSetup (pinBase, spi) ;
 
-
-/*
- * doExtensionMcp23017:
- *	MCP230017- 16-bit I2C GPIO expansion chip
- *	mcp23017:base:i2cAddr
- *********************************************************************************
- */
-
-static int (&doExtensionMcp23017)(char*, int, char*) = doExtensionI2C< mcp23017Setup, 0x03, 0x77 > ;
+  return TRUE ;
+}
 
 
 /*
  * doExtensionSPIPort<
- *  extensionSetup; SPI using port extension setup function reference
- *  spiMin; Minimum SPI address
- *  spiMax; Maximum SPI address
- *  portMin; Minimum port address
- *  portMax; Maximum port address
+ *   spiPortSetup; SPI with port extension setup function reference
+ *   spiMin; Minimum SPI address
+ *   spiMax; Maximum SPI address
+ *   portMin; Minimum port address
+ *   portMax; Maximum port address
  * >:
- *	Extracts an integer parameter, verifies spi and port addresses then calls
- *  extensionSetup
+ *	Extracts an integer parameter, verifies spi channel and port then calls
+ *  spiPortSetup
  *********************************************************************************
  */
 
-template <int (&extensionSetup)(const int, const int, const int), int spiMin, int spiMax, int portMin, int portMax>
+template <
+  spi_port_setup_t &spiPortSetup,
+  const int spiMin,
+  const int spiMax,
+  const int portMin,
+  const int portMax
+>
 static int doExtensionSPIPort (char *progName, int pinBase, char *params)
 {
   int spi, port ;
@@ -265,30 +341,10 @@ static int doExtensionSPIPort (char *progName, int pinBase, char *params)
     return FALSE ;
   }
 
-  extensionSetup (pinBase, spi, port) ;
+  spiPortSetup (pinBase, spi, port) ;
 
   return TRUE ;
 }
-
-
-/*
- * doExtensionMcp23s08:
- *	MCP23s08 - 8-bit SPI GPIO expansion chip
- *	mcp23s08:base:spi:port
- *********************************************************************************
- */
-
-static int (&doExtensionMcp23s08)(char*, int, char*) = doExtensionSPIPort< mcp23s08Setup, 0, 1, 0, 7 > ;
-
-
-/*
- * doExtensionMcp23s17:
- *	MCP23s17 - 16-bit SPI GPIO expansion chip
- *	mcp23s17:base:spi:port
- *********************************************************************************
- */
-
-static int (&doExtensionMcp23s17)(char*, int, char*) = doExtensionSPIPort< mcp23s17Setup, 0, 1, 0, 7 > ;
 
 
 /*
@@ -329,116 +385,38 @@ static int doExtensionSr595 (char *progName, int pinBase, char *params)
 
 
 /*
- * doExtensionPcf8574:
- *	Digital IO (Crude!)
- *	pcf8574:base:i2cAddr
+ * doExtensionDs18b20:
+ *	1-Wire Temperature
+ *	htu21d:base:serialNum
  *********************************************************************************
  */
 
-static int (&doExtensionPcf8574)(char*, int, char*) = doExtensionI2C< pcf8574Setup, 0x03, 0x77 > ;
-
-
-/*
- * doExtensionPcf8591:
- *	Analog IO
- *	pcf8591:base:i2cAddr
- *********************************************************************************
- */
-
-static int (&doExtensionPcf8591)(char*, int, char*) = doExtensionI2C< pcf8591Setup, 0x03, 0x77 > ;
-
-
-/*
- * doExtensionSPIChannel<
- *  extensionSetup; SPI using channel extension setup function reference
- *  spiMin; Minimum SPI address
- *  spiMax; Maximum SPI address
- * >:
- *	Extracts an integer parameter, verifies spi channel then calls extensionSetup
- *********************************************************************************
- */
-
-template <int (&extensionSetup)(const int, int), int spiMin, int spiMax>
-static int doExtensionSPIChannel (char *progName, int pinBase, char *params)
+static int doExtensionDs18b20 (char *progName, int pinBase, char *params)
 {
-  int spi ;
+  char *serialNum ;
 
-  if ((params = extractInt (progName, params, &spi)) == NULL)
+  if ((params = extractStr (progName, params, &serialNum)) == NULL)
     return FALSE ;
 
-  if ((spi < spiMin) || (spi > spiMax))
-  {
-    verbError ("%s: SPI channel (%d) out of range", progName, spi) ;
-    return FALSE ;
-  }
-
-  extensionSetup (pinBase, spi) ;
-
-  return TRUE ;
+  return ds18b20Setup (pinBase, serialNum) ;
 }
 
 
 /*
- * doExtensionMax31855:
- *	Analog IO
- *	max31855:base:spiChan
+ * doExtensionRht03:
+ *	Maxdetect 1-Wire Temperature & Humidity
+ *	rht03:base:piPin
  *********************************************************************************
  */
 
-static int (&doExtensionMax31855)(char*, int, char*) = doExtensionSPIChannel< max31855Setup, 0, 1 > ;
-
-
-/*
- * doExtensionMcp3002:
- *	Analog IO
- *	mcp3002:base:spiChan
- *********************************************************************************
- */
-
-static int (&doExtensionMcp3002)(char*, int, char*) = doExtensionSPIChannel< mcp3002Setup, 0, 1 > ;
-
-
-/*
- * doExtensionMcp3004:
- *	Analog IO
- *	mcp3004:base:spiChan
- *********************************************************************************
- */
-
-static int (&doExtensionMcp3004)(char*, int, char*) = doExtensionSPIChannel< mcp3004Setup, 0, 1 > ;
-
-
-/*
- * doExtensionMax5322:
- *	Analog O
- *	max5322:base:spiChan
- *********************************************************************************
- */
-
-static int (&doExtensionMax5322)(char*, int, char*) = doExtensionSPIChannel< max5322Setup, 0, 1 > ;
-
-
-/*
- * doExtensionMcp4802:
- *	Analog IO
- *	mcp4802:base:spiChan
- *********************************************************************************
- */
-
-static int (&doExtensionMcp4802)(char*, int, char*) = doExtensionSPIChannel< mcp4802Setup, 0, 1 > ;
-
-
-/*
- * doExtensionSn3218:
- *	Analog Output (LED Driver)
- *	sn3218:base
- *********************************************************************************
- */
-
-static int doExtensionSn3218 (char *progName, int pinBase, char *params)
+static int doExtensionRht03 (char *progName, int pinBase, char *params)
 {
-  sn3218Setup (pinBase) ;
-  return TRUE ;
+  int piPin ;
+
+  if ((params = extractInt (progName, params, &piPin)) == NULL)
+    return FALSE ;
+
+  return rht03Setup (pinBase, piPin) ;
 }
 
 
@@ -501,9 +479,9 @@ static int doExtensionDrcS (char *progName, int pinBase, char *params)
   if ((params = extractInt (progName, params, &pins)) == NULL)
     return FALSE ;
 
-  if ((pins < 1) || (pins > 100))
+  if ((pins < 1) || (pins > 1000))
   {
-    verbError ("%s: pins (%d) out of range (2-100)", progName, pins) ;
+    verbError ("%s: pins (%d) out of range (2-1000)", progName, pins) ;
     return FALSE ;
   }
 
@@ -531,6 +509,59 @@ static int doExtensionDrcS (char *progName, int pinBase, char *params)
 }
 
 
+/*
+ * doExtensionDrcNet:
+ *	Interface to a DRC Network system
+ *	drcn:base:pins:ipAddress:port:password
+ *********************************************************************************
+ */
+
+static int doExtensionDrcNet (char *progName, int pinBase, char *params)
+{
+  int pins ;
+  char *ipAddress, *port, *password ;
+  char pPort [1024] ;
+
+  if ((params = extractInt (progName, params, &pins)) == NULL)
+    return FALSE ;
+
+  if ((pins < 1) || (pins > 1000))
+  {
+    verbError ("%s: pins (%d) out of range (2-1000)", progName, pins) ;
+    return FALSE ;
+  }
+
+  if ((params = extractStr (progName, params, &ipAddress)) == NULL)
+    return FALSE ;
+
+  if (strlen (ipAddress) == 0)
+  {
+    verbError ("%s: ipAddress required", progName) ;
+    return FALSE ;
+  }
+
+  if ((params = extractStr (progName, params, &port)) == NULL)
+    return FALSE ;
+
+  if (strlen (port) == 0)
+  {
+    sprintf (pPort, "%d", DEFAULT_SERVER_PORT) ;
+    port = pPort ;
+  }
+
+  if ((params = extractStr (progName, params, &password)) == NULL)
+    return FALSE ;
+
+  if (strlen (password) == 0)
+  {
+    verbError ("%s: password required", progName) ;
+    return FALSE ;
+  }
+
+  return drcSetupNet (pinBase, pins, ipAddress, port, password) ;
+}
+
+
 
 /*
  * Function list
@@ -539,23 +570,30 @@ static int doExtensionDrcS (char *progName, int pinBase, char *params)
 
 static struct extensionFunctionStruct extensionFunctions [] =
 {
-  { "mcp23008",		&doExtensionMcp23008 	},
-  { "mcp23016",		&doExtensionMcp23016 	},
-  { "mcp23017",		&doExtensionMcp23017 	},
-  { "mcp23s08",		&doExtensionMcp23s08 	},
-  { "mcp23s17",		&doExtensionMcp23s17 	},
-  { "sr595",		&doExtensionSr595	},
-  { "pcf8574",		&doExtensionPcf8574	},
-  { "pcf8591",		&doExtensionPcf8591	},
-  { "mcp3002",		&doExtensionMcp3002	},
-  { "mcp3004",		&doExtensionMcp3004	},
-  { "mcp4802",		&doExtensionMcp4802	},
-  { "mcp3422",		&doExtensionMcp3422	},
-  { "max31855",		&doExtensionMax31855	},
-  { "max5322",		&doExtensionMax5322	},
-  { "sn3218",		&doExtensionSn3218	},
-  { "drcs",		&doExtensionDrcS	},
-  { NULL,		NULL		 	},
+  { "mcp23008",		&doExtensionI2C < mcp23008Setup, 0x01, 0x77 > 		},
+  { "mcp23016",		&doExtensionI2C < mcp23016Setup, 0x03, 0x77 > 		},
+  { "mcp23017",		&doExtensionI2C < mcp23017Setup, 0x03, 0x77 > 		},
+  { "mcp23s08",		&doExtensionSPIPort < mcp23s08Setup, 0, 1, 0, 7 > 	},
+  { "mcp23s17",		&doExtensionSPIPort < mcp23s17Setup, 0, 1, 0, 7 > 	},
+  { "sr595",		&doExtensionSr595					},
+  { "pcf8574",		&doExtensionI2C < pcf8574Setup, 0x03, 0x77 >		},
+  { "pcf8591",		&doExtensionI2C < pcf8591Setup, 0x03, 0x77 >		},
+  { "bmp180",		&doExtensionTrivial < bmp180Setup >			},
+  { "pseudoPins",	&doExtensionTrivial < pseudoPinsSetup >			},
+  { "htu21d",		&doExtensionTrivial < htu21dSetup >			},
+  { "ds18b20",		&doExtensionDs18b20					},
+  { "rht03",		&doExtensionRht03					},
+  { "mcp3002",		&doExtensionSPI < mcp3002Setup, 0, 1 >			},
+  { "mcp3004",		&doExtensionSPI < mcp3004Setup, 0, 1 >			},
+  { "mcp4802",		&doExtensionSPI < mcp4802Setup, 0, 1 >			},
+  { "mcp3422",		&doExtensionMcp3422					},
+  { "max31855",		&doExtensionSPI < max31855Setup, 0, 1 >			},
+  { "ads1115",		&doExtensionI2C < ads1115Setup, 0x03, 0x03 >		},
+  { "max5322",		&doExtensionSPI < max5322Setup, 0, 1 >			},
+  { "sn3218",		&doExtensionTrivial < sn3218Setup >			},
+  { "drcs",		&doExtensionDrcS					},
+  { "drcn",		&doExtensionDrcNet					},
+  { NULL,		NULL		 					},
 } ;
 
 
@@ -572,7 +610,7 @@ int loadWPiExtension (char *progName, char *extensionData, int printErrors)
   char *p ;
   char *extension = extensionData ;
   struct extensionFunctionStruct *extensionFn ;
-  int pinBase = 0 ;
+  unsigned pinBase = 0 ;
 
   verbose = printErrors ;
 
@@ -594,13 +632,13 @@ int loadWPiExtension (char *progName, char *extensionData, int printErrors)
 
   if (!isdigit (*p))
   {
-    verbError ("%s: pinBase number expected after extension name", progName) ;
+    verbError ("%s: decimal pinBase number expected after extension name", progName) ;
     return FALSE ;
   }
 
   while (isdigit (*p))
   {
-    if (pinBase > 1000000000) // Lets be realistic here...
+    if (pinBase > 2147483647) // 2^31-1 ... Lets be realistic here...
     {
       verbError ("%s: pinBase too large", progName) ;
       return FALSE ;
@@ -624,6 +662,6 @@ int loadWPiExtension (char *progName, char *extensionData, int printErrors)
       return extensionFn->function (progName, pinBase, p) ;
   }
 
-  verbError ("%s: extension %s not found", progName, extension) ;
+  fprintf (stderr, "%s: extension %s not found", progName, extension) ;
   return FALSE ;
 }

@@ -24,13 +24,6 @@
  ***********************************************************************
  */
 
-// Revisions:
-//  19 Sep 2015: (Contributed by Aaron Sami Abassi)
-//      Ported to c++ to leverage templates internally
-//      Refactored lcdDisplay into a function template named lcdControlFunction
-//      Refactored lcdDisplay, lcdCursor & lcdCursorBlink into function references
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -215,32 +208,40 @@ void lcdClear (const int fd)
  *********************************************************************************
  */
 
-template <const unsigned char control>
-static inline void lcdControlFunction (const int fd, int state)
+void lcdDisplay (const int fd, int state)
 {
   struct lcdDataStruct *lcd = lcds [fd] ;
 
   if (state)
-    lcdControl |=  control ;
+    lcdControl |=  LCD_DISPLAY_CTRL ;
   else
-    lcdControl &= ~control ;
+    lcdControl &= ~LCD_DISPLAY_CTRL ;
 
   putCommand (lcd, LCD_CTRL | lcdControl) ; 
 }
 
-void lcdDisplay (const int fd, int state)
-{
-  lcdControlFunction< LCD_DISPLAY_CTRL > (fd, state) ;
-}
-
 void lcdCursor (const int fd, int state)
 {
-  lcdControlFunction< LCD_CURSOR_CTRL > (fd, state) ;
+  struct lcdDataStruct *lcd = lcds [fd] ;
+
+  if (state)
+    lcdControl |=  LCD_CURSOR_CTRL ;
+  else
+    lcdControl &= ~LCD_CURSOR_CTRL ;
+
+  putCommand (lcd, LCD_CTRL | lcdControl) ; 
 }
 
 void lcdCursorBlink (const int fd, int state)
 {
-  lcdControlFunction< LCD_BLINK_CTRL > (fd, state) ;
+  struct lcdDataStruct *lcd = lcds [fd] ;
+
+  if (state)
+    lcdControl |=  LCD_BLINK_CTRL ;
+  else
+    lcdControl &= ~LCD_BLINK_CTRL ;
+
+  putCommand (lcd, LCD_CTRL | lcdControl) ; 
 }
 
 

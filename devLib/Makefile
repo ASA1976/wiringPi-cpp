@@ -1,8 +1,8 @@
 #
 # Makefile:
-#	wiringPi device - Wiring Compatable library for the Raspberry Pi
+#	wiringPi device - A "wiring" library for the Raspberry Pi
 #
-#	Copyright (c) 2012-2015 Gordon Henderson
+#	Copyright (c) 2012-2016 Gordon Henderson
 #################################################################################
 # This file is part of wiringPi:
 #	https://projects.drogon.net/raspberry-pi/wiringpi/
@@ -22,17 +22,21 @@
 #################################################################################
 
 VERSION=$(shell cat ../VERSION)
-DESTDIR=/usr
-PREFIX=/local
+DESTDIR?=/usr
+PREFIX?=/local
+
+LDCONFIG?=ldconfig
+
+ifneq ($V,1)
+Q ?= @
+endif
 
 STATIC=libwiringPiDev.a
 DYNAMIC=libwiringPiDev.so.$(VERSION)
 
-#DEBUG	 = -g -O0
+#DEBUG	= -g -O0
 DEBUG	 = -O2
 CXX	 = g++
-# Comment above and uncomment below if you have a non-default GCC installed
-#CXX	 = g++-5
 INCLUDE	 = -I.
 DEFS	 = -D_GNU_SOURCE
 CXXFLAGS = $(DEBUG) $(DEFS) -Wformat=2 -Wall -Winline $(INCLUDE) -pipe -fPIC -std=c++14
@@ -41,80 +45,82 @@ LIBS    =
 
 ###############################################################################
 
-SRC	=	ds1302.cpp maxdetect.cpp piNes.cpp	\
+SRC	=	ds1302.cpp maxdetect.cpp  piNes.cpp	\
 		gertboard.cpp piFace.cpp		\
 		lcd128x64.cpp lcd.cpp			\
+		scrollPhat.cpp				\
 		piGlow.cpp
 
 OBJ	=	$(SRC:.cpp=.o)
 
-HEADERS	=	ds1302.h gertboard.h  lcd128x64.h  lcd.h  maxdetect.h piFace.h  piGlow.h  piNes.h
+HEADERS	=	ds1302.h gertboard.h  lcd128x64.h  lcd.h  maxdetect.h piFace.h  piGlow.h  piNes.h\
+		scrollPhat.h
 
 all:		$(DYNAMIC)
 
 static:		$(STATIC)
 
 $(STATIC):	$(OBJ)
-	@echo "[Link (Static)]"
-	@ar rcs $(STATIC) $(OBJ)
-	@ranlib $(STATIC)
+	$Q echo "[Link (Static)]"
+	$Q ar rcs $(STATIC) $(OBJ)
+	$Q ranlib $(STATIC)
 #	@size   $(STATIC)
 
 $(DYNAMIC):	$(OBJ)
-	@echo "[Link (Dynamic)]"
-	@$(CC) -shared -Wl,-soname,libwiringPiDev.so -o libwiringPiDev.so.$(VERSION) -lpthread $(OBJ)
+	$Q echo "[Link (Dynamic)]"
+	$Q $(CXX) -shared -Wl,-soname,libwiringPiDev.so$(WIRINGPI_SONAME_SUFFIX) -o libwiringPiDev.so.$(VERSION) -lpthread $(OBJ)
 
-%.o: %.cpp
-	@echo [Compile] $<
-	@$(CC) -c $(CFLAGS) $< -o $@
+.cpp.o:
+	$Q echo [Compile] $<
+	$Q $(CXX) -c $(CXXFLAGS) $< -o $@
 
 .PHONY:	clean
 clean:
-	@echo "[Clean]"
-	@rm -f $(OBJ) $(OBJ_I2C) *~ core tags Makefile.bak libwiringPiDev.*
+	$Q echo "[Clean]"
+	$Q rm -f $(OBJ) $(OBJ_I2C) *~ core tags Makefile.bak libwiringPiDev.*
 
 .PHONY:	tags
 tags:	$(SRC)
-	@echo [ctags]
-	@ctags $(SRC)
+	$Q echo [ctags]
+	$Q ctags $(SRC)
 
 
 .PHONY:	install
 install:	$(DYNAMIC)
-	@echo "[Install Headers]"
-	@install -m 0755 -d						$(DESTDIR)$(PREFIX)/include
-	@install -m 0644 $(HEADERS)					$(DESTDIR)$(PREFIX)/include
-	@echo "[Install Dynamic Lib]"
-	@install -m 0755 -d						$(DESTDIR)$(PREFIX)/lib
-	@install -m 0755 libwiringPiDev.so.$(VERSION)			$(DESTDIR)$(PREFIX)/lib/libwiringPiDev.so.$(VERSION)
-	@ln -sf $(DESTDIR)$(PREFIX)/lib/libwiringPiDev.so.$(VERSION)	$(DESTDIR)/lib/libwiringPiDev.so
-	@ldconfig
+	$Q echo "[Install Headers]"
+	$Q install -m 0755 -d						$(DESTDIR)$(PREFIX)/include
+	$Q install -m 0644 $(HEADERS)					$(DESTDIR)$(PREFIX)/include
+	$Q echo "[Install Dynamic Lib]"
+	$Q install -m 0755 -d						$(DESTDIR)$(PREFIX)/lib
+	$Q install -m 0755 libwiringPiDev.so.$(VERSION)			$(DESTDIR)$(PREFIX)/lib/libwiringPiDev.so.$(VERSION)
+	$Q ln -sf $(DESTDIR)$(PREFIX)/lib/libwiringPiDev.so.$(VERSION)	$(DESTDIR)/lib/libwiringPiDev.so
+	$Q $(LDCONFIG)
 
 .PHONY:	install-static
 install-static:	$(STATIC)
-	@echo "[Install Headers]"
-	@install -m 0755 -d						$(DESTDIR)$(PREFIX)/include
-	@install -m 0644 $(HEADERS)					$(DESTDIR)$(PREFIX)/include
-	@echo "[Install Static Lib]"
-	@install -m 0755 -d						$(DESTDIR)$(PREFIX)/lib
-	@install -m 0755 libwiringPiDev.a				$(DESTDIR)$(PREFIX)/lib
+	$Q echo "[Install Headers]"
+	$Q install -m 0755 -d						$(DESTDIR)$(PREFIX)/include
+	$Q install -m 0644 $(HEADERS)					$(DESTDIR)$(PREFIX)/include
+	$Q echo "[Install Static Lib]"
+	$Q install -m 0755 -d						$(DESTDIR)$(PREFIX)/lib
+	$Q install -m 0755 libwiringPiDev.a				$(DESTDIR)$(PREFIX)/lib
 
 .PHONY:	install-deb
 install-deb:	$(DYNAMIC)
-	@echo "[Install Headers: deb]"
-	@install -m 0755 -d							~/wiringPi/debian/wiringPi/usr/include
-	@install -m 0644 $(HEADERS)						~/wiringPi/debian/wiringPi/usr/include
-	@echo "[Install Dynamic Lib: deb]"
-	install -m 0755 -d							~/wiringPi/debian/wiringPi/usr/lib
-	install -m 0755 libwiringPiDev.so.$(VERSION)				~/wiringPi/debian/wiringPi/usr/lib/libwiringPiDev.so.$(VERSION)
-	ln -sf ~/wiringPi/debian/wiringPi/usr/lib/libwiringPi.so.$(VERSION)	~/wiringPi/debian/wiringPi/usr/lib/libwiringPiDev.so
+	$Q echo "[Install Headers: deb]"
+	$Q install -m 0755 -d							~/wiringPi/debian-template/wiringPi/usr/include
+	$Q install -m 0644 $(HEADERS)						~/wiringPi/debian-template/wiringPi/usr/include
+	$Q echo "[Install Dynamic Lib: deb]"
+	install -m 0755 -d							~/wiringPi/debian-template/wiringPi/usr/lib
+	install -m 0755 libwiringPiDev.so.$(VERSION)				~/wiringPi/debian-template/wiringPi/usr/lib/libwiringPiDev.so.$(VERSION)
+	ln -sf ~/wiringPi/debian-template/wiringPi/usr/lib/libwiringPiDev.so.$(VERSION)	~/wiringPi/debian-template/wiringPi/usr/lib/libwiringPiDev.so
 
 .PHONY:	uninstall
 uninstall:
-	@echo "[UnInstall]"
-	@cd $(DESTDIR)$(PREFIX)/include/ && rm -f $(HEADERS)
-	@cd $(DESTDIR)$(PREFIX)/lib/     && rm -f libwiringPiDev.*
-	@ldconfig
+	$Q echo "[UnInstall]"
+	$Q cd $(DESTDIR)$(PREFIX)/include/ && rm -f $(HEADERS)
+	$Q cd $(DESTDIR)$(PREFIX)/lib/     && rm -f libwiringPiDev.*
+	$Q $(LDCONFIG)
 
 
 .PHONY:	depend
@@ -130,4 +136,5 @@ gertboard.o: gertboard.h
 piFace.o: piFace.h
 lcd128x64.o: font.h lcd128x64.h
 lcd.o: lcd.h
+scrollPhat.o: scrollPhatFont.h scrollPhat.h
 piGlow.o: piGlow.h
